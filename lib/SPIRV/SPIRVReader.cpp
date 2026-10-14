@@ -2578,8 +2578,11 @@ Value *SPIRVToLLVM::transValueWithoutDecoration(SPIRVValue *BV, Function *F,
       auto *CT = cast<Constant>(Base);
       SmallVector<Constant *, 4> ConstIndexList =
           map_to_vector(Index, [](Value *V) { return cast<Constant>(V); });
-      V = ConstantExpr::getGetElementPtr(M->getDataLayout(), BaseTy, CT,
-                                         ConstIndexList, IsInbound);
+      // LLVM 24 dropped the getGetElementPtr(DataLayout, ...) overload this
+      // SPIRV-LLVM-Translator revision still used; the Type-first form is the
+      // current one. The trailing bool is interpreted as inbounds (implying
+      // nusw) by GEPNoWrapFlags' historical bool constructor.
+      V = ConstantExpr::getGetElementPtr(BaseTy, CT, ConstIndexList, IsInbound);
       if (!BM->getErrorLog().checkError(
               V != nullptr, SPIRVEC_InvalidInstruction,
               "OpAccessChain cannot be represented as a "
